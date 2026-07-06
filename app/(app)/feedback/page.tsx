@@ -12,7 +12,7 @@ export default async function FeedbackPage({ searchParams }: PageProps) {
   const supabase = createClient();
 
   const [{ data: feedback }, { data: engineers }] = await Promise.all([
-    supabase.from("feedback").select("*").order("created_at", { ascending: false }),
+    supabase.from("feedback").select("*").order("created_at", { ascending: false }).limit(500),
     supabase.from("engineers").select("id,name,email,active").eq("active", true).order("name")
   ]);
 

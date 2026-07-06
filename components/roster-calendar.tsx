@@ -98,7 +98,7 @@ export function RosterCalendar({ isAdmin, initialRoster, engineers }: Props) {
     }
   }
 
-  const engineerMap = new Map(engineers.map((e) => [e.email, e.name]));
+  const engineerMap = useMemo(() => new Map(engineers.map((e) => [e.email, e.name])), [engineers]);
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstWeekday = new Date(year, month, 1).getDay(); // 0 = Sun
   const cells: (Date | null)[] = [];

@@ -90,47 +90,47 @@ export async function POST(request: NextRequest) {
   );
 
   const files = form.getAll("attachments") as File[];
-  const uploaded: { path: string; name: string; type: string; size: number }[] = [];
+  const validFiles = files.filter((f) => f && typeof f !== "string" && f.size > 0);
 
-  for (const file of files) {
-    if (!file || typeof file === "string") continue;
-    if (file.size === 0) continue;
-    if (file.size > 10 * 1024 * 1024) {
-      return NextResponse.json(
-        { error: `File "${file.name}" exceeds 10 MB.` },
-        { status: 400 }
-      );
-    }
-
-    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const path = `tickets/${ticket.id}/${Date.now()}-${safeName}`;
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = new Uint8Array(arrayBuffer);
-
-    const { error: upErr } = await admin.storage
-      .from("ticket-attachments")
-      .upload(path, buffer, {
-        contentType: file.type || "application/octet-stream",
-        upsert: false
-      });
-
-    if (upErr) {
-      return NextResponse.json(
-        { error: `Upload failed for "${file.name}": ${upErr.message}` },
-        { status: 500 }
-      );
-    }
-
-    uploaded.push({
-      path,
-      name: file.name,
-      type: file.type,
-      size: file.size
-    });
+  const oversized = validFiles.find((f) => f.size > 10 * 1024 * 1024);
+  if (oversized) {
+    return NextResponse.json(
+      { error: `File "${oversized.name}" exceeds 10 MB.` },
+      { status: 400 }
+    );
   }
 
-  if (uploaded.length > 0) {
-    const rows = uploaded.map((u) => ({
+  const uploaded = await Promise.all(
+    validFiles.map(async (file) => {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `tickets/${ticket.id}/${Date.now()}-${safeName}-${Math.random().toString(36).slice(2, 8)}`;
+      const buffer = new Uint8Array(await file.arrayBuffer());
+
+      const { error: upErr } = await admin.storage
+        .from("ticket-attachments")
+        .upload(path, buffer, {
+          contentType: file.type || "application/octet-stream",
+          upsert: false
+        });
+
+      if (upErr) {
+        throw new Error(`Upload failed for "${file.name}": ${upErr.message}`);
+      }
+
+      return { path, name: file.name, type: file.type, size: file.size };
+    })
+  ).catch((err: Error) => {
+    return { error: err.message } as const;
+  });
+
+  if (Array.isArray(uploaded) === false && "error" in uploaded) {
+    return NextResponse.json({ error: uploaded.error }, { status: 500 });
+  }
+
+  const uploadedRows = uploaded as { path: string; name: string; type: string; size: number }[];
+
+  if (uploadedRows.length > 0) {
+    const rows = uploadedRows.map((u) => ({
       ticket_id: ticket.id,
       file_path: u.path,
       file_name: u.name,

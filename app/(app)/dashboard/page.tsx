@@ -19,14 +19,15 @@ export default async function DashboardPage() {
     await Promise.all([
       supabase
         .from("tickets")
-        .select("*")
+        .select("id, ticket_number, staff_name, staff_pin, floor_dept, status, priority, assignee_email, problem_description, created_at")
         .eq("month_key", monthKey)
-        .order("created_at", { ascending: false }),
-      supabase.from("engineers").select("*").eq("active", true),
-      supabase.from("tickets").select("id", { count: "exact", head: true }),
+        .order("created_at", { ascending: false })
+        .limit(100),
+      supabase.from("engineers").select("id,name,email,active").eq("active", true),
+      supabase.from("tickets").select("id", { count: "estimated", head: true }),
       supabase
         .from("tickets")
-        .select("id", { count: "exact", head: true })
+        .select("id", { count: "estimated", head: true })
         .eq("assignee_email", engineer.email)
         .neq("status", "Done")
     ]);

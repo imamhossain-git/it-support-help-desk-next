@@ -1,6 +1,7 @@
 import { requireEngineer } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { TicketsTable } from "@/components/tickets-table";
+import type { Ticket } from "@/types";
 
 interface PageProps {
   searchParams: Promise<{ month?: string; status?: string; q?: string; assignee?: string }>;
@@ -17,9 +18,10 @@ export default async function TicketsPage({ searchParams }: PageProps) {
 
   let query = supabase
     .from("tickets")
-    .select("*")
+    .select("id, ticket_number, staff_name, staff_pin, floor_dept, status, priority, assignee_email, problem_description, created_at")
     .eq("month_key", monthKey)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(100);
 
   if (params.status && params.status !== "All") {
     query = query.eq("status", params.status);
@@ -34,13 +36,13 @@ export default async function TicketsPage({ searchParams }: PageProps) {
     );
   }
 
-  const [{ data: tickets }, { data: months }, { data: engineers }] = await Promise.all([
+  const [{ data: tickets }, { data: monthsRows }, { data: engineers }] = await Promise.all([
     query,
-    supabase.from("tickets").select("month_key").order("created_at", { ascending: false }),
+    supabase.from("tickets").select("month_key").order("month_key", { ascending: false }).limit(500),
     supabase.from("engineers").select("name,email").eq("active", true)
   ]);
 
-  const uniqueMonths = Array.from(new Set((months ?? []).map((m) => m.month_key)));
+  const uniqueMonths = Array.from(new Set((monthsRows ?? []).map((m) => m.month_key)));
 
   return (
     <div className="max-w-7xl mx-auto space-y-4">
@@ -50,7 +52,7 @@ export default async function TicketsPage({ searchParams }: PageProps) {
       </header>
 
       <TicketsTable
-        tickets={tickets ?? []}
+        tickets={(tickets ?? []) as Ticket[]}
         engineers={(engineers ?? []) as { name: string; email: string }[]}
         months={uniqueMonths}
         currentMonth={monthKey}

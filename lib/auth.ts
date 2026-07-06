@@ -25,7 +25,7 @@ export async function getCurrentEngineer(): Promise<Engineer | null> {
 
   const { data } = await supabase
     .from("engineers")
-    .select("*")
+    .select("id,name,email,role,active")
     .eq("email", user.email)
     .eq("active", true)
     .maybeSingle();

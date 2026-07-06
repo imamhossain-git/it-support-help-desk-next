@@ -24,21 +24,22 @@ export default async function TicketDetailPage({ params }: PageProps) {
   const [{ data: ticket }, { data: attachments }, { data: engineers }, { data: activity }] =
     await Promise.all([
       supabase.from("tickets").select("*").eq("id", id).maybeSingle(),
-      supabase.from("ticket_attachments").select("*").eq("ticket_id", id),
+      supabase.from("ticket_attachments").select("*").eq("ticket_id", id).order("created_at", { ascending: false }).limit(50),
       supabase.from("engineers").select("*").eq("active", true).order("name"),
       supabase.from("ticket_activity").select("*").eq("ticket_id", id).order("created_at", { ascending: false }).limit(50)
     ]);
 
   if (!ticket) notFound();
 
-  // Generate signed URLs for attachments (private bucket).
-  const attachmentsWithUrls: (TicketAttachment & { signedUrl: string | null })[] = [];
-  for (const a of (attachments ?? []) as TicketAttachment[]) {
-    const { data: signed } = await admin.storage
-      .from("ticket-attachments")
-      .createSignedUrl(a.file_path, 60 * 10); // 10 min
-    attachmentsWithUrls.push({ ...a, signedUrl: signed?.signedUrl ?? null });
-  }
+  // Generate signed URLs for attachments (private bucket) — in parallel.
+  const attachmentsWithUrls = await Promise.all(
+    ((attachments ?? []) as TicketAttachment[]).map(async (a) => {
+      const { data: signed } = await admin.storage
+        .from("ticket-attachments")
+        .createSignedUrl(a.file_path, 60 * 10); // 10 min
+      return { ...a, signedUrl: signed?.signedUrl ?? null };
+    })
+  );
 
   return (
     <div className="max-w-5xl mx-auto space-y-4">

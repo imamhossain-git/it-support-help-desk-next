@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -48,7 +48,7 @@ export function TicketsTable({
   const [mine, setMine] = useState(onlyMine);
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  const engineerMap = new Map(engineers.map((e) => [e.email, e.name]));
+  const engineerMap = useMemo(() => new Map(engineers.map((e) => [e.email, e.name])), [engineers]);
 
   function push(filters: Record<string, string | undefined>) {
     const sp = new URLSearchParams();
