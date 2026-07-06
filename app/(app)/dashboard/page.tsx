@@ -3,6 +3,7 @@ import { requireEngineer } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { TicketStats } from "@/components/ticket-stats";
 import { RecentTickets } from "@/components/recent-tickets";
+import { EmptyState } from "@/components/empty-state";
 import type { Ticket, Engineer, TicketStatus } from "@/types";
 
 export default async function DashboardPage() {
@@ -14,7 +15,7 @@ export default async function DashboardPage() {
     year: "numeric"
   });
 
-  const [{ data: ticketsData }, { data: engineersData }, { count: allTime }] =
+  const [{ data: ticketsData }, { data: engineersData }, { count: allTime }, { count: openMine }] =
     await Promise.all([
       supabase
         .from("tickets")
@@ -22,7 +23,12 @@ export default async function DashboardPage() {
         .eq("month_key", monthKey)
         .order("created_at", { ascending: false }),
       supabase.from("engineers").select("*").eq("active", true),
-      supabase.from("tickets").select("id", { count: "exact", head: true })
+      supabase.from("tickets").select("id", { count: "exact", head: true }),
+      supabase
+        .from("tickets")
+        .select("id", { count: "exact", head: true })
+        .eq("assignee_email", engineer.email)
+        .neq("status", "Done")
     ]);
 
   const tickets = (ticketsData as Ticket[]) ?? [];
@@ -49,7 +55,7 @@ export default async function DashboardPage() {
     <div className="max-w-7xl mx-auto space-y-6">
       <header className="flex items-end justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold">Dashboard</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="muted text-sm mt-1">
             Welcome back, <strong>{engineer.name}</strong>. Showing tickets for{" "}
             <strong>{monthKey}</strong>.
@@ -63,14 +69,15 @@ export default async function DashboardPage() {
       <TicketStats
         total={tickets.length}
         allTime={allTime ?? 0}
+        openMine={openMine ?? 0}
         statusCounts={statusCounts}
       />
 
       {myAssigned.length > 0 && (
-        <section className="card">
+        <section className="card card-hover animate-slide-up">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-bold">My Assigned Tickets ({myAssigned.length})</h2>
-            <Link href="/tickets?assignee=me" className="text-sm" style={{ color: "var(--accent)" }}>
+            <Link href="/tickets?assignee=me" className="text-sm font-semibold" style={{ color: "var(--accent)" }}>
               View all →
             </Link>
           </div>
@@ -78,20 +85,20 @@ export default async function DashboardPage() {
         </section>
       )}
 
-      <section className="card">
+      <section className="card card-hover animate-slide-up" style={{ animationDelay: "120ms" }}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-bold">Recent Tickets</h2>
-          <Link href="/tickets" className="text-sm" style={{ color: "var(--accent)" }}>
+          <Link href="/tickets" className="text-sm font-semibold" style={{ color: "var(--accent)" }}>
             View all →
           </Link>
         </div>
         {recent.length === 0 ? (
-          <p className="muted text-sm py-8 text-center">
-            No tickets yet for this month.{" "}
-            <Link href="/new-ticket" style={{ color: "var(--accent)" }}>
-              Create the first one →
-            </Link>
-          </p>
+          <EmptyState
+            icon="🎫"
+            title="No tickets yet for this month"
+            description="Create the first ticket of the month to start tracking IT support issues."
+            action={{ href: "/new-ticket", label: "Create Ticket" }}
+          />
         ) : (
           <RecentTickets tickets={recent} engineers={engineers} />
         )}

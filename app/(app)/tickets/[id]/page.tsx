@@ -4,7 +4,7 @@ import { requireEngineer } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { TicketDetail } from "@/components/ticket-detail";
-import type { Engineer, Ticket, TicketAttachment } from "@/types";
+import type { Engineer, Ticket, TicketAttachment, TicketActivity } from "@/types";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -21,11 +21,13 @@ export default async function TicketDetailPage({ params }: PageProps) {
     { auth: { persistSession: false, autoRefreshToken: false } }
   );
 
-  const [{ data: ticket }, { data: attachments }, { data: engineers }] = await Promise.all([
-    supabase.from("tickets").select("*").eq("id", id).maybeSingle(),
-    supabase.from("ticket_attachments").select("*").eq("ticket_id", id),
-    supabase.from("engineers").select("*").eq("active", true).order("name")
-  ]);
+  const [{ data: ticket }, { data: attachments }, { data: engineers }, { data: activity }] =
+    await Promise.all([
+      supabase.from("tickets").select("*").eq("id", id).maybeSingle(),
+      supabase.from("ticket_attachments").select("*").eq("ticket_id", id),
+      supabase.from("engineers").select("*").eq("active", true).order("name"),
+      supabase.from("ticket_activity").select("*").eq("ticket_id", id).order("created_at", { ascending: false }).limit(50)
+    ]);
 
   if (!ticket) notFound();
 
@@ -51,6 +53,7 @@ export default async function TicketDetailPage({ params }: PageProps) {
         ticket={ticket as Ticket}
         attachments={attachmentsWithUrls}
         engineers={(engineers ?? []) as Engineer[]}
+        activity={(activity ?? []) as TicketActivity[]}
       />
     </div>
   );

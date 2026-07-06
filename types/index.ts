@@ -64,3 +64,68 @@ export interface BracStaff {
   contact: string;
   email: string;
 }
+
+export interface ChatMessage {
+  id: string;
+  room_key: string;
+  sender_email: string;
+  sender_name: string;
+  message: string;
+  created_at: string;
+}
+
+export interface ChatRead {
+  id: string;
+  email: string;
+  room_key: string;
+  last_read_message_id: string | null;
+  updated_at: string;
+}
+
+export interface RosterEntry {
+  id: string;
+  date: string;
+  duty_email: string | null;
+  mrc_email: string | null;
+  note: string | null;
+  updated_by: string | null;
+  updated_at: string;
+}
+
+export type Satisfaction = "Very Satisfactory" | "Satisfactory" | "Average" | "Poor" | "Very Poor";
+
+export interface Feedback {
+  id: string;
+  ticket_id: string;
+  month_key: string;
+  ticket_number: string | null;
+  staff_pin: string | null;
+  staff_name: string | null;
+  program: string | null;
+  solved_by_email: string | null;
+  satisfaction: Satisfaction;
+  score: number;
+  comment: string | null;
+  created_at: string;
+}
+
+export interface TicketActivity {
+  id: string;
+  ticket_id: string;
+  actor_email: string;
+  action: string;
+  old_value: string | null;
+  new_value: string | null;
+  note: string | null;
+  created_at: string;
+}
+
+export interface Notification {
+  id: string;
+  recipient_email: string;
+  title: string;
+  body: string | null;
+  link: string | null;
+  read: boolean;
+  created_at: string;
+}
