@@ -144,7 +144,6 @@ middleware.ts            # Auth + domain check
 
 ## v2 features (not in MVP)
 
-- Team chat with Supabase Realtime
 - Duty roster calendar
 - Feedback email collection
 - SLA overdue alerts

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { requireEngineer } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -5,22 +6,23 @@ import LogoutButton from "@/components/logout-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationsBell } from "@/components/notifications-bell";
 
+async function NotificationBadge({ email }: { email: string }) {
+  const supabase = createClient();
+  const { count } = await supabase
+    .from("notifications")
+    .select("id", { count: "estimated", head: true })
+    .eq("recipient_email", email)
+    .eq("read", false);
+  return <NotificationsBell initialUnread={count ?? 0} />;
+}
+
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const engineer = await requireEngineer();
-  const supabase = createClient();
-
-  // Pre-fetch unread notification count
-  const { count: unread } = await supabase
-    .from("notifications")
-    .select("id", { count: "exact", head: true })
-    .eq("recipient_email", engineer.email)
-    .eq("read", false);
 
   const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: "📊" },
     { href: "/new-ticket", label: "New Ticket", icon: "➕" },
     { href: "/tickets", label: "All Tickets", icon: "📋" },
-    { href: "/chat", label: "Chat", icon: "💬" },
     { href: "/roster", label: "Roster", icon: "📅" },
     { href: "/feedback", label: "Feedback", icon: "⭐" }
   ];
@@ -50,7 +52,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </div>
           </Link>
           <div className="flex items-center gap-1">
-            <NotificationsBell initialUnread={unread ?? 0} />
+            <Suspense fallback={null}>
+              <NotificationBadge email={engineer.email} />
+            </Suspense>
             <ThemeToggle />
           </div>
         </div>

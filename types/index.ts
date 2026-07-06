@@ -65,23 +65,6 @@ export interface BracStaff {
   email: string;
 }
 
-export interface ChatMessage {
-  id: string;
-  room_key: string;
-  sender_email: string;
-  sender_name: string;
-  message: string;
-  created_at: string;
-}
-
-export interface ChatRead {
-  id: string;
-  email: string;
-  room_key: string;
-  last_read_message_id: string | null;
-  updated_at: string;
-}
-
 export interface RosterEntry {
   id: string;
   date: string;
